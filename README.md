@@ -1,2 +1,5 @@
 # student_alisonwu19
-https://github.com/bcb420-2020/student_alisonwu19/wiki
+
+### Assignmnet 1
+
+https://htmlpreview.github.io/?https://github.com/bcb420-2020/student_alisonwu19/blob/master/A1.html
