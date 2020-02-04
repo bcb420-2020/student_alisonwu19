@@ -183,13 +183,24 @@ normalized_counts <- cpm(d)
 ```
 
 ## Plot
+Now, we can see the distrubution of the data
 
 Boxplot 
+  - with data from the original data before normalization
 ```{r }
-dataPlot <- log2(normalized_counts)
+dataPlot <- log2(cpm(exp[,2:42]) + 0.0001)
 boxplot(dataPlot, xlab = "Samples", ylab = "log2 CPM", 
-                 las = 3, cex = 0.5, cex.lab = 0.5,
-                  cex.axis = 0.5, main = "CD45+CD3+ RNASeq Samples", outline = FALSE)
+                 las = 2, cex = 0.5,
+                  cex.axis = 0.5, main = "CD45+CD3+ RNASeq Samples")
+
+```
+
+  - View the distrubution using the normalized data
+```{r }
+nor_dataPlot <- log2(normalized_counts + 0.0001)
+boxplot(nor_dataPlot, xlab = "Samples", ylab = "log2 CPM", 
+                 las = 2, cex = 0.5,
+                  cex.axis = 0.5, main = "Normalized CD45+CD3+ RNASeq Samples")
 
 ```
 
@@ -200,3 +211,29 @@ plotMDS(d, labels=rownames(samples),
         col = c("green","blue", "red")[factor(samples$subtype)])
 ```
 
+Density Plot
+
+```{r}
+densityCount <- apply(log2(cpm(exp[,2:42])), 2, density)
+xlim <- 0
+ylim <- 0
+for (i in 1:length(densityCount)) {
+  xlim <- range(c(xlim, densityCount[[i]]$x)); 
+  ylim <- range(c(ylim, densityCount[[i]]$y))
+}
+cols <- rainbow(length(densityCount))
+ltys <- rep(1, length(densityCount))
+
+#plot the density graph
+plot(densityCount[[1]], xlim=xlim, ylim=ylim, type="n", 
+     ylab="Density of log2-CPM", main="", cex.lab = 0.85)
+
+for (i in 1:length(densityCount)) 
+  lines(densityCount[[i]], col=cols[i], lty=ltys[i])
+
+
+legend("topright", colnames(dataPlot),  
+       col=cols, lty=ltys, cex=0.50, 
+       border ="blue",  text.col = "green4", 
+       merge = TRUE, bg = "gray90")
+```
