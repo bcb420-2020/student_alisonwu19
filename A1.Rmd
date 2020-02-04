@@ -1,0 +1,202 @@
+---
+title: "Assigment 1"
+author: "Alison Wu"
+date: "2/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Select an Expression Data Set
+
+Questions and answers
+
+1. What are the control and test conditions of the dataset?
+  - This study performed RNA-seq on purified CD45+ T cells from normal breast tissues (n=12),DCIS (n=11), and IDC (n=12), focusing on HER2+CD3+ (n=5) and TN (n=6) IDC cases.
+
+2. Why is the dataset of interest to you?
+  - Breast cancer is quite common and many studies have been done on this topic. However, few studies actually investigate into  the composition of leukocytes in various features. It is very interesting to see how the gene expression profiling of CD45+CD3+ T cells demonstrate in carcinomas (IDC)significant tissue and tumor subtype-specific tissue. 
+cell types including T cells and neutrophils
+3. Were there expression values that were not unique for specific genes? How did you handle these?
+
+4. Were there expression values that could not be mapped to current HUGO symbols?
+  - Most of the gene code can be mapped to current HUGO symbols.
+5. How did you handle replicates?
+  - Find the replicates and investigate. Filter out the unique ones and remove outdated genes.
+6. What is the final coverage of your dataset?
+  - The final coverage of my dataset is 26440 out of 27011 observed values (missing ~2.2% of the dataset).
+
+
+
+## Pre-work 
+Download all the require packages and reference the libraries 
+
+readr allows the program to read large datasets.
+```{r}
+if (! requireNamespace("readr")) {
+  install.packages("readr")
+}
+```
+
+biomaRt is a Bioconductor package that implements the RESTful API of biomart, the annotation framwork for model organism genomes at the EBI. It is a Bioconductor package, and as such it needs to be loaded via the BiocManager, 
+
+```{r}
+if (! requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+
+if (! requireNamespace("biomaRt", quietly = TRUE)) {
+  BiocManager::install("biomaRt")
+}
+
+if (! requireNamespace("GEOquery", quietly = TRUE)) {
+  BiocManager::install("GEOquery")
+}
+
+if (! requireNamespace("edgeR", quietly = TRUE)) {
+  BiocManager::install("edgeR")
+}
+```
+
+Reference the libraries
+```{r}
+library(readr)
+library(BiocManager)
+library(biomaRt)
+library(GEOquery)
+library(edgeR)
+```
+
+## Load the data
+
+```{r}
+GSE87517 <- getGEOSuppFiles("GSE87517", makeDirectory = FALSE)
+filenames = rownames(GSE87517)
+exp <- read.delim(filenames[1], sep = ",", header=TRUE, check.names = FALSE) 
+dim(exp)
+head(exp)
+```
+
+## Assess
+Check if there is any duplicated genes or features
+```{r}
+hgncSym <- unique(exp$Feature)
+length(hgncSym) #no duplicated genes
+features <- unique(colnames(exp))
+length(features) #no duplicated features
+```
+
+## Mapping
+Mapping via biomaRt
+The data that I am working contains HUGO gene symbols so I am going to map it to Ensembl ID
+
+  - Map ENSEMBL gene id to HGNC symbols
+  - Require a stable network connection
+```{r}
+myMart <- useMart("ensembl", dataset="hsapiens_gene_ensembl")
+tmp <- getBM(filters = "hgnc_symbol",
+                      attributes = c("hgnc_symbol",
+                                     "ensembl_gene_id"),
+                      values = hgncSym,
+                      mart = myMart)
+```
+Take a look at the new mapped table
+```{r}
+head(tmp)
+
+nrow(tmp)  #  26448 ensembl gene id have been retrieved for the 27011 HGNC symbols
+```
+
+## Clean
+
+Check duplicates
+```{r}
+sum(duplicated(tmp$ensembl_gene_id)) 
+
+sum(! (hgncSym) %in% tmp$nsembl_gene_id) 
+```
+
+To fix those duplicates
+  - Find them
+```{r}
+dupEnsembl <- tmp$ensembl_gene_id[duplicated(tmp$ensembl_gene_id)]
+tmp[tmp$ensembl_gene_id %in% dupEnsembl, ]
+```
+
+Make sure there is no empty values
+```{R}
+tmp <- tmp[ ! (tmp$ensembl_gene_id %in% c("")), ]
+```
+
+Only 6 duplicates so we can check it on the ensembl gene portal
+```{r}
+tmp <- tmp[!(tmp$hgnc_symbol == "CCL3L3" & tmp$ensembl_gene_id != "ENSG00000276085"), ]
+tmp <- tmp[!(tmp$hgnc_symbol == "CCL3L1" & tmp$ensembl_gene_id != "ENSG00000277336"), ]
+```
+
+According to Ensembl gene portal
+  - LINC00856 is an external reference matched to LINC00595
+  - C12orf74 is an external reference matched PLEKHG7
+  - We can remove both
+```{r}
+tmp <- tmp[ ! (tmp$hgnc_symbol %in% c("C12orf74","LINC00856")), ]
+
+#Check duplicates
+any(duplicated(tmp$ensembl_gene_id))
+
+```
+
+Save the mapping
+```{r}
+hgnc2Sym <- tmp$hgnc_symbol
+names(hgnc2Sym) <- tmp$ensembl_gene_id
+
+head(hgnc2Sym)
+```
+
+
+## Normalization 
+Group all the subtypes/ features
+```{r}
+samples <- data.frame(lapply(colnames(exp)[2:42], FUN = function(x){unlist(strsplit(x, "(?=[A-Za-z])(?<=[0-9])|(?=[0-9])(?<=[A-Za-z])", perl=TRUE))[c(1,2)]}))
+colnames(samples) <- colnames(exp)[2:42]
+rownames(samples) <- c("subtype","num")
+samples <- data.frame(t(samples))
+```
+
+Compare read counts in different breast tumour subtypes
+```{r}
+dm <-  as.matrix(exp[,2:42])
+rownames(dm) <- exp$Feature
+d = DGEList(counts=dm, group=samples$subtype)
+
+
+#Calculate normalization factor
+d = calcNormFactors(d)
+normalized_counts <- cpm(d)
+
+
+#Coverage of the dataset
+(nrow(normalized_counts))-(length(hgnc2Sym)) #~ 2.2% of the dataset
+```
+
+## Plot
+
+Boxplot 
+```{r }
+dataPlot <- log2(normalized_counts)
+boxplot(dataPlot, xlab = "Samples", ylab = "log2 CPM", 
+                 las = 3, cex = 0.5, cex.lab = 0.5,
+                  cex.axis = 0.5, main = "CD45+CD3+ RNASeq Samples", outline = FALSE)
+
+```
+
+MDS Plot 
+  - Compare between all subtypes
+```{r}
+plotMDS(d, labels=rownames(samples),
+        col = c("green","blue", "red")[factor(samples$subtype)])
+```
+
