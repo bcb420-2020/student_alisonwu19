@@ -1,0 +1,338 @@
+---
+title: "Assignment 2"
+author: "Alison Wu"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 1
+    
+bibliography: article.bib
+---
+
+
+```{r setup, include=FALSE}
+rmarkdown::render("A1.Rmd")
+```
+
+
+# Decription of article 
+!!- 
+Decription of dataset
+Gene expression analyses in leukocytes sorted from normal breast tissues, ductal carcinomas in situ (DCIS), and HER2+ and triple negative invasive ductal carcinomas (IDC)
+Source name	resected breast tumor
+Organism	Homo sapiens
+Characteristics	tissue of origin: breast (tumor)
+cell type: CD45+CD3+ T cell
+breast tumor subtype: DCIS
+
+RNA was isolated from purified CD45+CD3+ leukocytes by cell sorting
+
+Results in A1
+!!
+normalization - from the slides
+Statistics: 
+- MDS Plot
+- Density Plot
+- Boxplot
+
+```{r, echo=FALSE}
+normalized_data <- log2(normalized_counts + 1)
+```
+
+
+# Prework
+Install all the required packages
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+if (!requireNamespace("Biobase", quietly = TRUE))
+    BiocManager::install("Biobase")
+if (!requireNamespace("ComplexHeatmap", quietly = TRUE))
+    BiocManager::install("ComplexHeatmap")
+if (!requireNamespace("circlize", quietly = TRUE))
+    BiocManager::install("circlize")
+if (!requireNamespace("gprofiler2", quietly = TRUE))
+    install.packages("gprofiler2")
+
+```
+
+Reference the packages
+```{r}
+  library(Biobase)
+  library(ComplexHeatmap)
+  library(circlize)
+  library(gprofiler2)
+```
+
+# Gene of interest
+
+Look at the most common genes of the same subfamily in our dataset
+
+```{r}
+#Find the genes of interest
+#Start with strongest signals
+#The most common genes of the same subfamily
+rownames(exp_filtered) <- exp_filtered$Feature
+genes_sample <- data.frame(lapply(rownames(normalized_data), FUN = function(x){unlist(strsplit(x, "(?=[A-Za-z])(?<=[0-9])|(?=[0-9])(?<=[A-Za-z])", perl=TRUE))[c(1,2)]}))
+colnames(genes_sample) <- colnames(exp_filtered)[2:42]
+rownames(genes_sample) <- c("subfamily", "num")
+genes_sample <- data.frame(t(genes_sample))
+
+summarized_gene_counts <- sort(table(genes_sample$subfamily),decreasing = TRUE)
+
+head(summarized_gene_counts)
+```
+
+!!
+LOC - family of RNA gene
+- not too interesting
+CD - CD8A
+CTLA-4 signaling pathways
+- mentioned in the results of the article multiple times
+
+```{r}
+
+#CD8A
+dcis_samples <- grep(colnames(normalized_data),
+                          pattern="DCIS")
+idc_samples <- grep(colnames(normalized_data),
+                          pattern="IDC")
+normal_samples <- grep(colnames(normalized_data),
+                    pattern="N")
+gene_of_interest <- "CD8A"
+
+CD8A_dcis_samples <- data.matrix(normalized_data
+                       [gene_of_interest,
+                         dcis_samples])
+colnames(CD8A_dcis_samples) <- c("dcis_samples")
+CD8A_idc_samples <- data.matrix(normalized_data
+                       [gene_of_interest,
+                         idc_samples])
+colnames(CD8A_idc_samples) <- c("idc_samples")
+CD8A_normal_samples <- data.matrix(normalized_data
+                       [gene_of_interest,
+                         normal_samples])
+colnames(CD8A_normal_samples) <- c("normal_samples")
+
+# DCIS VS Normal
+t.test(x=t(CD8A_dcis_samples),y=t(CD8A_normal_samples))
+
+# IDC vs Normal
+t.test(x=t(CD8A_idc_samples),y=t(CD8A_normal_samples))
+
+
+#CTLA4
+gene_of_interest <- "CTLA4"
+
+CTLA4_dcis_samples <- data.matrix(normalized_data
+                                 [gene_of_interest,
+                                   dcis_samples])
+colnames(CTLA4_dcis_samples) <- c("dcis_samples")
+CTLA4_idc_samples <- data.matrix(normalized_data
+                                [gene_of_interest,
+                                  idc_samples])
+colnames(CTLA4_idc_samples) <- c("idc_samples")
+CTLA4_normal_samples <- data.matrix(normalized_data
+                                   [gene_of_interest,
+                                     normal_samples])
+colnames(CTLA4_normal_samples) <- c("normal_samples")
+
+# DCIS VS Normal
+t.test(x=t(CTLA4_dcis_samples),y=t(CTLA4_normal_samples))
+
+# IDC vs Normal
+t.test(x=t(CTLA4_idc_samples),y=t(CTLA4_normal_samples))
+```
+
+# Differential expression analysis
+Look at the article and get the conclusion 
+What does P-value do?
+ P-value = 0.05 and multiple hypothesis correction on the p-values ?
+
+Quasi liklihood
+DEF
+- used for more complicated models and is highly recommended 
+for bulk RNASeq experiments. (glmQLFTest)
+
+Design the model
+
+```{r}
+subtypes <- samples$subtype
+model_design <- model.matrix(~ 0 + subtypes)
+expressionMatrix <- as.matrix(normalized_data[,1:41])
+rownames(expressionMatrix) <- rownames(normalized_data)
+colnames(expressionMatrix) <- colnames(normalized_data)[1:41]
+minSet <- ExpressionSet(assayData=expressionMatrix)
+
+#Fit the model
+fit <- lmFit(minSet, model_design)
+
+#Normalize the data
+dm <-  as.matrix(exp_filtered[,2:42])
+rownames(dm) <- exp_filtered$Feature
+d <- DGEList(counts=dm, group=samples$subtype)
+
+d <- calcNormFactors(d)
+
+#MDS Plot
+
+plotMDS(d, labels=NULL, pch = 1, 
+        col= c("darkgreen","blue","red")[factor(samples$subtype)])
+legend("topright", 
+       legend=levels(factor(samples$subtype)), 
+       pch=c(1), col= c("darkgreen","blue","red"),
+       title="Class",  
+       bty = 'n', cex = 0.5)
+
+
+
+#Estimate Dispersion - our model design.
+d <- estimateDisp(d, model_design)
+
+#Fit the model
+fit <- glmQLFit(d, model_design)
+
+
+#Calculate differential expression
+#DCIS vs Normal
+contrast_dcisVSnormal <- makeContrasts(
+  dcisVSnormal ="subtypesDCIS-subtypesN",
+  levels=model_design)
+
+#IDC vs Normal
+contrast_idcVSnormal <- makeContrasts(
+  dcisVSnormal ="subtypesIDC-subtypesN",
+  levels=model_design)
+
+#Normal vs all
+contrast_normal <- makeContrasts(
+  immunovsrest ="subtypesN-(subtypesDCIS + 
+  subtypesIDC)/2",
+  levels=model_design)
+
+
+
+#Get all the results
+qlf.dcis_vs_n <- glmQLFTest(fit, contrast=contrast_dcisVSnormal)
+tt_dcis_vs_n <- topTags(qlf.dcis_vs_n,n=nrow(d))
+qlf.idc_vs_n <- glmQLFTest(fit, contrast=contrast_idcVSnormal)
+tt_idc_vs_n <- topTags(qlf.idc_vs_n,n=nrow(d))
+qlf.normal_vs_all <- glmQLFTest(fit, contrast=contrast_normal)
+tt_normal_vs_all <- topTags(qlf.normal_vs_all,n=nrow(d))
+
+
+#How many gene pass the threshold p-value < 0.05?
+length(which(tt_dcis_vs_n$table$PValue<0.05))
+length(which(tt_idc_vs_n$table$PValue<0.05))
+length(which(tt_normal_vs_all$table$PValue<0.05))
+
+
+#How many genes pass correction?
+#using BH as adjusted method
+length(which(tt_dcis_vs_n$table$FDR < 0.01))
+length(which(tt_idc_vs_n$table$FDR < 0.01))
+length(which(tt_idc_vs_n$table$FDR < 0.01))
+
+
+#Heatmap
+heatmap_matrix <- normalized_data[,1:ncol(normalized_data)]
+rownames(heatmap_matrix) <- rownames(normalized_data)
+colnames(heatmap_matrix) <- colnames(normalized_data[,1:ncol(normalized_data)])
+
+top_hits <- rownames(tt_normal_vs_all)[which(tt_normal_vs_all$table$FDR < 0.01)]
+heatmap_matrix_tophits <- t(
+  scale(t(heatmap_matrix[which(rownames(heatmap_matrix) %in% top_hits),]))) 
+if(min(heatmap_matrix_tophits) == 0){
+  heatmap_col = colorRamp2(c( 0, max(heatmap_matrix_tophits)), 
+                           c( "white", "red"))
+} else {
+  heatmap_col = colorRamp2(c(min(heatmap_matrix_tophits), 0, max(heatmap_matrix_tophits)), c("blue", "white", "red"))
+}
+current_heatmap <- Heatmap(as.matrix(heatmap_matrix_tophits),
+                           cluster_rows = TRUE,  show_row_dend = TRUE,
+                           cluster_columns = TRUE,show_column_dend = FALSE,
+                           col=heatmap_col,show_column_names = FALSE, 
+                           show_row_names = FALSE,show_heatmap_legend = TRUE)
+n_colours <- c("darkgreen","blue","orange")
+names(n_colours) <- unique(samples$subtype)
+n <- HeatmapAnnotation(df=data.frame(
+  type = samples$subtype),
+  col =  list(type = n_colours))
+current_heatmap <- Heatmap(as.matrix(heatmap_matrix_tophits),
+                           cluster_rows = TRUE,  show_row_dend = TRUE,
+                           cluster_columns = TRUE,show_column_dend = FALSE,
+                           col=heatmap_col,show_column_names = FALSE, 
+                           show_row_names = FALSE,show_heatmap_legend = TRUE,
+                           top_annotation = n)
+current_heatmap
+```
+
+Up regualted genes
+```{r}
+diff_exp <- merge(exp[,1:1],tt_normal_vs_all, by.x=1, by.y = 0)
+diff_exp[,"rank"] <- -log(diff_exp$PValue,base =10) * sign(diff_exp$logFC)
+length(which(tt_normal_vs_all$table$PValue <= 0.05 
+                       & tt_normal_vs_all$table$logFC >= 1))
+up_genes <- diff_exp$x[which(diff_exp$PValue <= 0.05 & diff_exp$logFC >= 1)]
+```
+
+Down regulated genes
+```{r}
+
+length(which(tt_normal_vs_all$table$PValue < 0.05 
+                       & tt_normal_vs_all$table$logFC <= -1))
+down_genes <- diff_exp$x[which(diff_exp$PValue < 0.05 & diff_exp$logFC <= -1)]
+
+```
+
+Save all genes lists
+```{r}
+write.table(x=up_genes,
+            file=file.path("up_genes.txt"),sep = "\t",
+            row.names = FALSE,col.names = FALSE,quote = FALSE)
+write.table(x=down_genes,
+            file=file.path("down_genes.txt"),sep = "\t",
+            row.names = FALSE,col.names = FALSE,quote = FALSE)
+write.table(x=data.frame(genename= diff_exp$x,F_stat= diff_exp$rank),
+            file=file.path("ranked_genelist.txt"),sep = "\t",
+            row.names = FALSE,col.names = FALSE,quote = FALSE)
+
+```
+
+
+# Over-representation analysis
+
+```{r, message=FALSE, warning=FALSE}
+up_gpro <- gost(up_genes, organism = "hsapiens", ordered_query = FALSE,
+     multi_query = FALSE, significant = TRUE, exclude_iea = FALSE,
+     measure_underrepresentation = FALSE, evcodes = FALSE,
+     user_threshold = 0.05, correction_method = c("fdr"),
+     domain_scope = c("annotated"),
+     custom_bg = NULL, numeric_ns = "", sources = NULL,
+     as_short_link = FALSE)
+
+head(up_gpro$result)
+#Plot
+gostplot(up_gpro, capped = TRUE, interactive = TRUE)
+#View all in a chart instead
+publish_gosttable(up_gpro, highlight_terms = up_gpro$result[c(1:10),],
+                  use_colors = TRUE, 
+                  show_columns = c("source", "term_name", "term_size", "intersection_size"),
+                  filename = NULL)
+
+down_gpro <- gost(down_genes, organism = "hsapiens", ordered_query = FALSE,
+                multi_query = FALSE, significant = TRUE, exclude_iea = FALSE,
+                measure_underrepresentation = FALSE, evcodes = FALSE,
+                user_threshold = 0.05, correction_method = c("fdr"),
+                domain_scope = c("annotated"),
+                custom_bg = NULL, numeric_ns = "", sources = NULL,
+                as_short_link = FALSE)
+head(down_gpro$result)
+#Plot
+gostplot(down_gpro, capped = TRUE, interactive = TRUE)
+
+publish_gosttable(down_gpro, highlight_terms = down_gpro$result[c(1:10),],
+                        use_colors = TRUE, 
+                        show_columns = c("source", "term_name", "term_size", "intersection_size"),
+                        filename = NULL)
+```
