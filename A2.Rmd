@@ -313,7 +313,7 @@ up_gpro <- gost(up_genes, organism = "hsapiens", ordered_query = FALSE,
 
 head(up_gpro$result)
 #Plot
-gostplot(up_gpro, capped = TRUE, interactive = TRUE)
+gostplot(up_gpro, capped = TRUE, interactive = FALSE)
 #View all in a chart instead
 publish_gosttable(up_gpro, highlight_terms = up_gpro$result[c(1:10),],
                   use_colors = TRUE, 
@@ -329,7 +329,7 @@ down_gpro <- gost(down_genes, organism = "hsapiens", ordered_query = FALSE,
                 as_short_link = FALSE)
 head(down_gpro$result)
 #Plot
-gostplot(down_gpro, capped = TRUE, interactive = TRUE)
+gostplot(down_gpro, capped = TRUE, interactive = FALSE)
 
 publish_gosttable(down_gpro, highlight_terms = down_gpro$result[c(1:10),],
                         use_colors = TRUE, 
