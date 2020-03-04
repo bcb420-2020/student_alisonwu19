@@ -656,7 +656,20 @@ write.table(x=data.frame(genename= diff_exp$x,F_stat= diff_exp$rank),
 <h1>Thresholded Over-representation analysis</h1>
 <p>To perform a thresholded gene set enrichment analysis, we can either go on the web interface (<a href="https://biit.cs.ut.ee/gprofiler/gost" class="uri">https://biit.cs.ut.ee/gprofiler/gost</a>) to run g:Profiler or use the gprofiler2 package.</p>
 <p>Using the function gost() to retrieve the functional enrichment analysis of gene lists. The annotation data and the version of the annotation I am using is:</p>
-<p><a href="GO:MF" class="uri">GO:MF</a> – releases/2019-07-01 <a href="GO:CC" class="uri">GO:CC</a> – releases/2019-07-01 <a href="GO:BP" class="uri">GO:BP</a> – releases/2019-07-01 KEGG – KEGG FTP Release 2019-09-30 REAC – annotations: ensembl classes: 2019-10-2 WP – 20190910 TF – annotations: TRANSFAC Release 2019.1 classes: v2 MIRNA – Release 7.0 HPA – annotations: HPA website: 2017-12-01 classes: script: 2018-03-19 CORUM – 03.09.2018 Corum 3.0 HP – hpo.annotations.monthly #157</p>
+<p><a href="GO:MF" class="uri">GO:MF</a> – releases/2019-07-01</p>
+<p><a href="GO:CC" class="uri">GO:CC</a> – releases/2019-07-01</p>
+<p><a href="GO:BP" class="uri">GO:BP</a> – releases/2019-07-01</p>
+<p>KEGG – KEGG FTP Release 2019-09-30</p>
+<p>REAC – annotations: ensembl</p>
+<p>classes: 2019-10-2</p>
+<p>WP – 20190910</p>
+<p>TF – annotations: TRANSFAC Release 2019.1</p>
+<p>classes: v2</p>
+<p>MIRNA – Release 7.0</p>
+<p>HPA – annotations: HPA website: 2017-12-01</p>
+<p>classes: script: 2018-03-19</p>
+<p>CORUM – 03.09.2018 Corum 3.0</p>
+<p>HP – hpo.annotations.monthly #157</p>
 <pre class="r"><code>#Upregualted genes
 up_gpro &lt;- gost(up_genes, organism = &quot;hsapiens&quot;, ordered_query = FALSE,
      multi_query = FALSE, significant = TRUE, exclude_iea = FALSE,
