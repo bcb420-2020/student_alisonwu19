@@ -379,8 +379,10 @@ summary {
 
 <div id="decription-of-article" class="section level1">
 <h1>Decription of article</h1>
-<p>Tne of the most dynamic cell populations found in turmous are leukocytes. They play a very important role in normal breast tissue remodeling during pregnancy and involution. This study performed a gene expression analysis in leukocytes sorted from normal breast tissues, ductal carcinomas in situ (DCIS), and HER2+ and triple negative invasive ductal carcinomas (IDC). It focuses on the immune escape during breast tumor progression.</p>
-<p>About the dataset This study performed RNA-seq on purified CD45+ T cells from normal breast tissues (n=12),DCIS (n=11), and IDC (n=12), focusing on HER2+CD3+ (n=5) and TN (n=6) IDC cases. RNA was isolated from purified CD45+CD3+ leukocytes by cell sorting. Source name resected breast tumor Organism Homo sapiens Characteristics tissue of origin: breast (tumor) cell type: CD45+CD3+ T cell breast tumor subtype: DCIS/ IDC/ None</p>
+<p>The of the most dynamic cell populations found in turmous are leukocytes. They play a very important role in normal breast tissue remodeling during pregnancy and involution. This study performed a gene expression analysis in leukocytes sorted from normal breast tissues, ductal carcinomas in situ (DCIS), and HER2+ and triple negative invasive ductal carcinomas (IDC). It focuses on the immune escape during breast tumor progression.</p>
+<p>About the dataset</p>
+<p>This study performed RNA-seq on purified CD45+ T cells from normal breast tissues (n=12),DCIS (n=11), and IDC (n=12), focusing on HER2+CD3+ (n=5) and TN (n=6) IDC cases. RNA was isolated from purified CD45+CD3+ leukocytes by cell sorting.</p>
+<p>Source name resected breast tumor Organism Homo sapiens Characteristics tissue of origin: breast (tumor) cell type: CD45+CD3+ T cell breast tumor subtype: DCIS/ IDC/ None</p>
 <p>Results from A1 Retrieved dataset(GSE87517) from GEOquery.Checked if there is any duplicated genes and features in the dataset. Since the dataset contains HUGO symbols so I mapped it with ENSEMBL gene id. Gathered all the information from BioManager::useMart and mapped it with our dataset. Only 6 duplicates existed in the mapping therefore I manually filtered out the duplicates by checking them on the ensembl gene portal. Normalized the data and filtered out low counts data. Look at the distribution of the dataset by Boxplot, MDS plot and Density plot. The final coverage of my dataset is 26440 out of 27011 observed values (missing ~2.2% of the dataset)</p>
 </div>
 <div id="prework" class="section level1">
@@ -490,7 +492,11 @@ t.test(x=t(CD8A_idc_samples),y=t(CD8A_normal_samples))</code></pre>
 ## sample estimates:
 ## mean of x mean of y 
 ##  2.736788  5.080711</code></pre>
-<p>CTLA-4 : immune checkpoint proteins - mentioned in the results of the article - signaling pathways were upregulated in IDC compared to DCIS - CTLA-4 were also more abundant in T cells from IDCs than in DCIS,</p>
+<p>CTLA-4 : immune checkpoint proteins - mentioned in the results of the article</p>
+<ul>
+<li><p>signaling pathways were upregulated in IDC compared to DCIS</p></li>
+<li><p>CTLA-4 were also more abundant in T cells from IDCs than in DCIS,</p></li>
+</ul>
 <pre class="r"><code>#CTLA4
 gene_of_interest &lt;- &quot;CTLA4&quot;
 
@@ -649,7 +655,8 @@ write.table(x=data.frame(genename= diff_exp$x,F_stat= diff_exp$rank),
 <div id="thresholded-over-representation-analysis" class="section level1">
 <h1>Thresholded Over-representation analysis</h1>
 <p>To perform a thresholded gene set enrichment analysis, we can either go on the web interface (<a href="https://biit.cs.ut.ee/gprofiler/gost" class="uri">https://biit.cs.ut.ee/gprofiler/gost</a>) to run g:Profiler or use the gprofiler2 package.</p>
-<p>Using the function gost() to retrieve the functional enrichment analysis of gene lists. The annotation data and the version of the annotation I am using is: <a href="GO:MF" class="uri">GO:MF</a> – releases/2019-07-01 <a href="GO:CC" class="uri">GO:CC</a> – releases/2019-07-01 <a href="GO:BP" class="uri">GO:BP</a> – releases/2019-07-01 KEGG – KEGG FTP Release 2019-09-30 REAC – annotations: ensembl classes: 2019-10-2 WP – 20190910 TF – annotations: TRANSFAC Release 2019.1 classes: v2 MIRNA – Release 7.0 HPA – annotations: HPA website: 2017-12-01 classes: script: 2018-03-19 CORUM – 03.09.2018 Corum 3.0 HP – hpo.annotations.monthly #157</p>
+<p>Using the function gost() to retrieve the functional enrichment analysis of gene lists. The annotation data and the version of the annotation I am using is:</p>
+<p><a href="GO:MF" class="uri">GO:MF</a> – releases/2019-07-01 <a href="GO:CC" class="uri">GO:CC</a> – releases/2019-07-01 <a href="GO:BP" class="uri">GO:BP</a> – releases/2019-07-01 KEGG – KEGG FTP Release 2019-09-30 REAC – annotations: ensembl classes: 2019-10-2 WP – 20190910 TF – annotations: TRANSFAC Release 2019.1 classes: v2 MIRNA – Release 7.0 HPA – annotations: HPA website: 2017-12-01 classes: script: 2018-03-19 CORUM – 03.09.2018 Corum 3.0 HP – hpo.annotations.monthly #157</p>
 <pre class="r"><code>#Upregualted genes
 up_gpro &lt;- gost(up_genes, organism = &quot;hsapiens&quot;, ordered_query = FALSE,
      multi_query = FALSE, significant = TRUE, exclude_iea = FALSE,

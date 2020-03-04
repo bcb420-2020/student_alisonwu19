@@ -16,11 +16,13 @@ rmarkdown::render("A1.Rmd")
 
 
 # Decription of article 
-Tne of the most dynamic cell populations found in turmous are leukocytes. They play a very important role in normal breast tissue remodeling during pregnancy and involution. This study performed a gene expression analysis in leukocytes sorted from normal breast tissues, ductal carcinomas in situ (DCIS), and HER2+ and triple negative invasive ductal carcinomas (IDC). It focuses on the immune escape during breast tumor progression. 
+The of the most dynamic cell populations found in turmous are leukocytes. They play a very important role in normal breast tissue remodeling during pregnancy and involution. This study performed a gene expression analysis in leukocytes sorted from normal breast tissues, ductal carcinomas in situ (DCIS), and HER2+ and triple negative invasive ductal carcinomas (IDC). It focuses on the immune escape during breast tumor progression. 
 
 About the dataset
+
 This study performed RNA-seq on purified CD45+ T cells from normal breast tissues (n=12),DCIS (n=11), and IDC (n=12), focusing on HER2+CD3+ (n=5) and TN (n=6) IDC cases.
 RNA was isolated from purified CD45+CD3+ leukocytes by cell sorting.
+
 Source name	resected breast tumor
 Organism	Homo sapiens
 Characteristics	tissue of origin: breast (tumor)
@@ -38,7 +40,7 @@ normalized_data <- log2(normalized_counts + 1)
 
 # Prework
 Install all the required packages
-```{r}
+```{r, message=FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 if (!requireNamespace("Biobase", quietly = TRUE))
@@ -116,7 +118,9 @@ t.test(x=t(CD8A_idc_samples),y=t(CD8A_normal_samples))
 
 CTLA-4 : immune checkpoint proteins 
 - mentioned in the results of the article 
+
 - signaling pathways were upregulated in IDC compared to DCIS
+
 - CTLA-4 were also more abundant in T cells from IDCs
 than in DCIS, 
 
@@ -296,19 +300,33 @@ To perform a thresholded gene set enrichment analysis, we can either go on the w
 
 Using the function gost() to retrieve the functional enrichment analysis of gene lists.
 The annotation data and the version of the annotation I am using is:
+
 GO:MF – releases/2019-07-01
+
 GO:CC – releases/2019-07-01
+
 GO:BP – releases/2019-07-01
+
 KEGG – KEGG FTP Release 2019-09-30
+
 REAC – annotations: ensembl
+
 classes: 2019-10-2
+
 WP – 20190910
+
 TF – annotations: TRANSFAC Release 2019.1
+
 classes: v2
+
 MIRNA – Release 7.0
+
 HPA – annotations: HPA website: 2017-12-01
+
 classes: script: 2018-03-19
+
 CORUM – 03.09.2018 Corum 3.0
+
 HP – hpo.annotations.monthly #157
 
 ```{r, message=FALSE, warning=FALSE}
