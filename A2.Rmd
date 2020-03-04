@@ -16,24 +16,20 @@ rmarkdown::render("A1.Rmd")
 
 
 # Decription of article 
-!!- 
-Decription of dataset
-Gene expression analyses in leukocytes sorted from normal breast tissues, ductal carcinomas in situ (DCIS), and HER2+ and triple negative invasive ductal carcinomas (IDC)
+Tne of the most dynamic cell populations found in turmous are leukocytes. They play a very important role in normal breast tissue remodeling during pregnancy and involution. This study performed a gene expression analysis in leukocytes sorted from normal breast tissues, ductal carcinomas in situ (DCIS), and HER2+ and triple negative invasive ductal carcinomas (IDC). It focuses on the immune escape during breast tumor progression. 
+
+About the dataset
+This study performed RNA-seq on purified CD45+ T cells from normal breast tissues (n=12),DCIS (n=11), and IDC (n=12), focusing on HER2+CD3+ (n=5) and TN (n=6) IDC cases.
+RNA was isolated from purified CD45+CD3+ leukocytes by cell sorting.
 Source name	resected breast tumor
 Organism	Homo sapiens
 Characteristics	tissue of origin: breast (tumor)
 cell type: CD45+CD3+ T cell
-breast tumor subtype: DCIS
+breast tumor subtype: DCIS/ IDC/ None
 
-RNA was isolated from purified CD45+CD3+ leukocytes by cell sorting
+Results from A1
+Retrieved dataset(GSE87517) from GEOquery.Checked if there is any duplicated genes and features in the dataset. Since the dataset contains HUGO symbols so I mapped it with ENSEMBL gene id. Gathered all the information from BioManager::useMart and mapped it with our dataset. Only 6 duplicates existed in the mapping therefore I manually filtered out the duplicates by checking them on the ensembl gene portal. Normalized the data and filtered out low counts data. Look at the distribution of the dataset by Boxplot, MDS plot and Density plot. The final coverage of my dataset is 26440 out of 27011 observed values (missing ~2.2% of the dataset)
 
-Results in A1
-!!
-normalization - from the slides
-Statistics: 
-- MDS Plot
-- Density Plot
-- Boxplot
 
 ```{r, echo=FALSE}
 normalized_data <- log2(normalized_counts + 1)
@@ -83,12 +79,9 @@ summarized_gene_counts <- sort(table(genes_sample$subfamily),decreasing = TRUE)
 head(summarized_gene_counts)
 ```
 
-!!
-LOC - family of RNA gene
-- not too interesting
-CD - CD8A
-CTLA-4 signaling pathways
-- mentioned in the results of the article multiple times
+CD8A
+- According to Entrez Gene Summary:
+- CD8A acts as a coreceptor with the T-cell receptor on the T lymphocyte to recognize antigens
 
 ```{r}
 
@@ -119,7 +112,15 @@ t.test(x=t(CD8A_dcis_samples),y=t(CD8A_normal_samples))
 
 # IDC vs Normal
 t.test(x=t(CD8A_idc_samples),y=t(CD8A_normal_samples))
+```
 
+CTLA-4 : immune checkpoint proteins 
+- mentioned in the results of the article 
+- signaling pathways were upregulated in IDC compared to DCIS
+- CTLA-4 were also more abundant in T cells from IDCs
+than in DCIS, 
+
+```{r}
 
 #CTLA4
 gene_of_interest <- "CTLA4"
@@ -145,16 +146,11 @@ t.test(x=t(CTLA4_idc_samples),y=t(CTLA4_normal_samples))
 ```
 
 # Differential expression analysis
-Look at the article and get the conclusion 
-What does P-value do?
- P-value = 0.05 and multiple hypothesis correction on the p-values ?
 
-Quasi liklihood
-DEF
-- used for more complicated models and is highly recommended 
-for bulk RNASeq experiments. (glmQLFTest)
+Use edgeR to perform differential expression analysis as edgeR is designed for analyzing RNA-seq data. using Quasi liklihood method to get the estimation of allowing overdispersion and this method can fit data exhibiting overdispersion using fully specified probability models
 
-Design the model
+
+Design the model for the anaylsis
 
 ```{r}
 subtypes <- samples$subtype
@@ -167,12 +163,19 @@ minSet <- ExpressionSet(assayData=expressionMatrix)
 #Fit the model
 fit <- lmFit(minSet, model_design)
 
+```
+
+Take a look at the MDS plot
+```{r}
+
 #Normalize the data
 dm <-  as.matrix(exp_filtered[,2:42])
 rownames(dm) <- exp_filtered$Feature
 d <- DGEList(counts=dm, group=samples$subtype)
 
 d <- calcNormFactors(d)
+
+
 
 #MDS Plot
 
@@ -184,56 +187,45 @@ legend("topright",
        title="Class",  
        bty = 'n', cex = 0.5)
 
+```
+According to above MDS Plot, setting the magnitude of log-fold change of at least 1 and less than one seems reasonable. 
 
 
+```{r}
 #Estimate Dispersion - our model design.
 d <- estimateDisp(d, model_design)
 
 #Fit the model
 fit <- glmQLFit(d, model_design)
+```
 
 
-#Calculate differential expression
-#DCIS vs Normal
-contrast_dcisVSnormal <- makeContrasts(
-  dcisVSnormal ="subtypesDCIS-subtypesN",
-  levels=model_design)
+Calculate differential expression
 
-#IDC vs Normal
-contrast_idcVSnormal <- makeContrasts(
-  dcisVSnormal ="subtypesIDC-subtypesN",
-  levels=model_design)
-
+Make a contrast table explicitly comparing normal genes and affected (dcis and idc) genes
+```{r}
 #Normal vs all
-contrast_normal <- makeContrasts(
-  immunovsrest ="subtypesN-(subtypesDCIS + 
-  subtypesIDC)/2",
-  levels=model_design)
+contrast_normal <- makeContrasts(normalVSall ="subtypesN-(subtypesDCIS + 
+  subtypesIDC)/2", levels=model_design)
 
 
 
 #Get all the results
-qlf.dcis_vs_n <- glmQLFTest(fit, contrast=contrast_dcisVSnormal)
-tt_dcis_vs_n <- topTags(qlf.dcis_vs_n,n=nrow(d))
-qlf.idc_vs_n <- glmQLFTest(fit, contrast=contrast_idcVSnormal)
-tt_idc_vs_n <- topTags(qlf.idc_vs_n,n=nrow(d))
 qlf.normal_vs_all <- glmQLFTest(fit, contrast=contrast_normal)
 tt_normal_vs_all <- topTags(qlf.normal_vs_all,n=nrow(d))
 
 
 #How many gene pass the threshold p-value < 0.05?
-length(which(tt_dcis_vs_n$table$PValue<0.05))
-length(which(tt_idc_vs_n$table$PValue<0.05))
 length(which(tt_normal_vs_all$table$PValue<0.05))
 
 
 #How many genes pass correction?
-#using BH as adjusted method
-length(which(tt_dcis_vs_n$table$FDR < 0.01))
-length(which(tt_idc_vs_n$table$FDR < 0.01))
-length(which(tt_idc_vs_n$table$FDR < 0.01))
+#using BH as the adjusted method
+length(which(tt_normal_vs_all$table$FDR < 0.01))
+```
 
-
+Plot the heatmap to compare the expressions of normal/ unaffected genes and affected genes.
+```{r}
 #Heatmap
 heatmap_matrix <- normalized_data[,1:ncol(normalized_data)]
 rownames(heatmap_matrix) <- rownames(normalized_data)
@@ -255,9 +247,7 @@ current_heatmap <- Heatmap(as.matrix(heatmap_matrix_tophits),
                            show_row_names = FALSE,show_heatmap_legend = TRUE)
 n_colours <- c("darkgreen","blue","orange")
 names(n_colours) <- unique(samples$subtype)
-n <- HeatmapAnnotation(df=data.frame(
-  type = samples$subtype),
-  col =  list(type = n_colours))
+n <- HeatmapAnnotation(df=data.frame(type = samples$subtype), col = list(type = n_colours))
 current_heatmap <- Heatmap(as.matrix(heatmap_matrix_tophits),
                            cluster_rows = TRUE,  show_row_dend = TRUE,
                            cluster_columns = TRUE,show_column_dend = FALSE,
@@ -300,9 +290,29 @@ write.table(x=data.frame(genename= diff_exp$x,F_stat= diff_exp$rank),
 ```
 
 
-# Over-representation analysis
+# Thresholded Over-representation analysis
+
+To perform a thresholded gene set enrichment analysis, we can either go on the web interface (https://biit.cs.ut.ee/gprofiler/gost) to run g:Profiler or use the gprofiler2 package. 
+
+Using the function gost() to retrieve the functional enrichment analysis of gene lists.
+The annotation data and the version of the annotation I am using is:
+GO:MF – releases/2019-07-01
+GO:CC – releases/2019-07-01
+GO:BP – releases/2019-07-01
+KEGG – KEGG FTP Release 2019-09-30
+REAC – annotations: ensembl
+classes: 2019-10-2
+WP – 20190910
+TF – annotations: TRANSFAC Release 2019.1
+classes: v2
+MIRNA – Release 7.0
+HPA – annotations: HPA website: 2017-12-01
+classes: script: 2018-03-19
+CORUM – 03.09.2018 Corum 3.0
+HP – hpo.annotations.monthly #157
 
 ```{r, message=FALSE, warning=FALSE}
+#Upregualted genes
 up_gpro <- gost(up_genes, organism = "hsapiens", ordered_query = FALSE,
      multi_query = FALSE, significant = TRUE, exclude_iea = FALSE,
      measure_underrepresentation = FALSE, evcodes = FALSE,
@@ -312,14 +322,17 @@ up_gpro <- gost(up_genes, organism = "hsapiens", ordered_query = FALSE,
      as_short_link = FALSE)
 
 head(up_gpro$result)
-#Plot
+
+#Plot 
 gostplot(up_gpro, capped = TRUE, interactive = FALSE)
-#View all in a chart instead
+
+#View all in a chart of upregulated genes instead
 publish_gosttable(up_gpro, highlight_terms = up_gpro$result[c(1:10),],
                   use_colors = TRUE, 
                   show_columns = c("source", "term_name", "term_size", "intersection_size"),
                   filename = NULL)
 
+#Downregulated genes
 down_gpro <- gost(down_genes, organism = "hsapiens", ordered_query = FALSE,
                 multi_query = FALSE, significant = TRUE, exclude_iea = FALSE,
                 measure_underrepresentation = FALSE, evcodes = FALSE,
@@ -328,6 +341,7 @@ down_gpro <- gost(down_genes, organism = "hsapiens", ordered_query = FALSE,
                 custom_bg = NULL, numeric_ns = "", sources = NULL,
                 as_short_link = FALSE)
 head(down_gpro$result)
+
 #Plot
 gostplot(down_gpro, capped = TRUE, interactive = FALSE)
 
