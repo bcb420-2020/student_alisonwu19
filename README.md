@@ -8,3 +8,7 @@ https://htmlpreview.github.io/?https://github.com/bcb420-2020/student_alisonwu19
 ### Assignmnet 2
 
 https://htmlpreview.github.io/?https://github.com/bcb420-2020/student_alisonwu19/blob/master/A2.html
+
+### Assignmnet 3
+
+https://htmlpreview.github.io/?https://github.com/bcb420-2020/student_alisonwu19/blob/master/A3.html
