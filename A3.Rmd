@@ -1,0 +1,183 @@
+---
+title: "Assignment 3"
+author: "Alison Wu"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    
+bibliography: article.bib
+---
+
+
+```{r child='A2.Rmd', include=FALSE, eval=TRUE}
+```
+
+
+# Decription of article 
+The of the most dynamic cell populations found in turmous are leukocytes. They play a very important role in normal breast tissue remodeling during pregnancy and involution. This study performed a gene expression analysis in leukocytes sorted from normal breast tissues, ductal carcinomas in situ (DCIS), and HER2+ and triple negative invasive ductal carcinomas (IDC). It focuses on the immune escape during breast tumor progression. 
+
+About the dataset
+
+This study performed RNA-seq on purified CD45+ T cells from normal breast tissues (n=12),DCIS (n=11), and IDC (n=12), focusing on HER2+CD3+ (n=5) and TN (n=6) IDC cases.
+RNA was isolated from purified CD45+CD3+ leukocytes by cell sorting.
+
+Source name	resected breast tumor
+Organism	Homo sapiens
+Characteristics	tissue of origin: breast (tumor)
+cell type: CD45+CD3+ T cell
+breast tumor subtype: DCIS/ IDC/ None
+
+Results from A1
+Retrieved dataset(GSE87517) from GEOquery.Checked if there is any duplicated genes and features in the dataset. Since the dataset contains HUGO symbols so I mapped it with ENSEMBL gene id. Gathered all the information from BioManager::useMart and mapped it with our dataset. Only 6 duplicates existed in the mapping therefore I manually filtered out the duplicates by checking them on the ensembl gene portal. Normalized the data and filtered out low counts data. Look at the distribution of the dataset by Boxplot, MDS plot and Density plot. The final coverage of my dataset is 26440 out of 27011 observed values (missing ~2.2% of the dataset)
+
+
+# Prework
+Install all the required packages
+```{r, message=FALSE, echo=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+if (!requireNamespace("Biobase", quietly = TRUE))
+    BiocManager::install("Biobase")
+if (!requireNamespace("ComplexHeatmap", quietly = TRUE))
+    BiocManager::install("ComplexHeatmap")
+if (!requireNamespace("circlize", quietly = TRUE))
+    BiocManager::install("circlize")
+if (!requireNamespace("gprofiler2", quietly = TRUE))
+    install.packages("gprofiler2")
+
+```
+
+Reference the packages
+```{r}
+  library(Biobase)
+  library(ComplexHeatmap)
+  library(circlize)
+  library(gprofiler2)
+```
+
+
+# Non-thresholded Gene set Enrichment Analysis
+
+Non-thresholded gene set enrichment analysis is performed using GSEA v4.0.3. The text file of the ranked-list is generated from A2. The rank is calculated by log(diff_exp$PValue,base =10) * sign(diff_exp$logFC). 
+
+```{r}
+head(diff_exp)
+
+#upregulated genes
+head(up_genes)
+
+#downregulated genes
+head(down_genes)
+```
+
+![](A3_images/GSEA.PNG)
+
+
+Methods: GSEA v4.0.3 for Windows
+
+Genesets: Genesets from the baderlab geneset collection from February 1, 2020 containing GO biological process, no IEA and pathways
+
+Version: v4.0.3
+
+
+Results:
+
+![](A3_images/ranked_genelist.PNG)
+
+
+
+Top 10 upregualted genes:
+![](A3_images/top10_pos.PNG)
+
+The complement system is made up of a large number of distinct plasma proteins that react with one another to opsonize pathogens and induce a series of inflammatory responses that help to fight infection. 
+
+Top 10 downregulated genes:
+![](A3_images/top10_neg.PNG)
+
+Compare results: 
+
+From A2, we perfromed a enrichment analysis using g:profiler. From there, the top upgregulated are: cellcular response to cytokine stimulus, response to cytokine, cytokine-mediated signaling pathway, cellcular response to tumor necrosis facr and organelle envelope.
+The result from g:profiler mostly consists of cellular and biological response to cytokine which is quite different from the results from GSEA. 
+
+# Enrichment Analysis
+
+Enrichment Analysis is perfromed using Cytoscape 3.7.2 and the parameters are the followings:
+
+Analysis type: GSEA
+Enrichment pos: gsea_report_for_na_pos_1585770708151.xls
+ENrichment neg: gsea_report_for_na_neg_1585770708151.xls
+GMT: Human_GOBP_AllPathways_no_GO_iea_February_01_2020_symbol.gmt
+Ranks: ranked_gene_list_na_pos_versus_na_neg_1585770708151.txt
+Expression: normalized_data.txt
+Phenotype: na_pos, na_neg
+FDR : 0.9
+
+All the files are used in Cytoscape are generated from GSEA except normalized_data.txt. normalized_data.txt is the differential expression that is calculated in A2 and is inputed in a text file. It consists of all the gene names and their LogFC value.
+
+
+There are 463 nodes and 1469 edges showing in the network.
+![](A3_images/network.png)
+![](A3_images/enrichment_map_legend.PNG)
+
+The geneset with the highest positive NES:
+![](A3_images/map_top_pos.png)
+
+The geneset with the lowest negative NES:
+![](A3_images/map_top_neg.png)
+
+Annotated cluster:
+Using the application in Cytoscape, AutoAnnotate, to create annotation set
+
+The parameters are the followings:
+Cluster Alogrithm: MLC cluster
+Edge Weight column: simlarity_coefficient
+Label Column: GS_DESCR
+Label Algorithm: WordCloud: Adjacent Words
+Max Word per lable: 3
+Adjacent word bonus: 8
+
+
+![](A3_images/annotation.png)
+
+The annotation network has 90 clusters. The range size of the clusters is from 2 nodes to 33 nodes. 
+
+The top 3 largest upregulated cluster: 
+mrna translation termination
+il2 1pathway il
+nucleus trna export
+
+1 major downregulated cluster:
+chemokine chemotaxis migration
+
+
+
+Putting the annoatated network into theme
+Go to AutoAnnotate panel to Create Summary Network, then select Clusters and Unclustered Nodes
+
+![](A3_images/AutoAnnotate - Summary Network.png)
+
+Now, in the network, we have 189 nodes and 33 edges. 34 of all nodes are not clustered together and the rest are clusted and linked together. 
+
+
+# Wikipathway
+
+From the GSEA reault, we can see MATRIX METALLOPROTEINASES pathway is in the top 10 upgregulated list. The MMP family and their inhibitor play a very important role multiple biological functions in all stages of cancer development. The stages of cancer developement include initiation to outgrowth of clinically relevant metastases and likewise in apoptosis and angiogenesis. MMPs and their inhibitors are crucital to many researchers and are investigated to be an anticancer drug
+
+
+Import the network from Public database, searched the pathway by Wikipathway and entered WP129
+
+![](A3_images/Matrix Metalloproteinases - Homo sapiens_1.png)
+
+Import the differential expression data (normalized_data.txt) to the pathway
+Change the color of the enzymes according to the expression level from normalized_data.txt
+
+![](A3_images/pathway_logFC.png)
+![](A3_images/heatmap_legend.png)
+
+MMP3 and TIMP4 show the highest expression value and TCF20 shows the lowerst expression value
+
+In the article, MMPs are not mentioned in the paper but from the results from A2, it is one of the most abundant family expressed in the dcis and IDC features. MMP3 involves in the breakdown of extracellular matrix in normal physiological processes, such as embryonic development, reproduction, and tissue remodeling, as well as in disease processes, such as arthritis and metastasis.As TIMP4 is the inhibitor of the matrix metalloproteinases which involves in degradation of the extracellular matrix. On the other hand, TCF20 is downregualted and is transcriptional coactivator and can enhance the activity of transcription factors. Mutation on this protein can lead to autism spectrum disorders which is less related to our article. 
+
+
+
