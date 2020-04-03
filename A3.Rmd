@@ -28,34 +28,8 @@ Characteristics	tissue of origin: breast (tumor)
 cell type: CD45+CD3+ T cell
 breast tumor subtype: DCIS/ IDC/ None
 
-Results from A1
-Retrieved dataset(GSE87517) from GEOquery.Checked if there is any duplicated genes and features in the dataset. Since the dataset contains HUGO symbols so I mapped it with ENSEMBL gene id. Gathered all the information from BioManager::useMart and mapped it with our dataset. Only 6 duplicates existed in the mapping therefore I manually filtered out the duplicates by checking them on the ensembl gene portal. Normalized the data and filtered out low counts data. Look at the distribution of the dataset by Boxplot, MDS plot and Density plot. The final coverage of my dataset is 26440 out of 27011 observed values (missing ~2.2% of the dataset)
-
-
-# Prework
-Install all the required packages
-```{r, message=FALSE, echo=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-if (!requireNamespace("Biobase", quietly = TRUE))
-    BiocManager::install("Biobase")
-if (!requireNamespace("ComplexHeatmap", quietly = TRUE))
-    BiocManager::install("ComplexHeatmap")
-if (!requireNamespace("circlize", quietly = TRUE))
-    BiocManager::install("circlize")
-if (!requireNamespace("gprofiler2", quietly = TRUE))
-    install.packages("gprofiler2")
-
-```
-
-Reference the packages
-```{r}
-  library(Biobase)
-  library(ComplexHeatmap)
-  library(circlize)
-  library(gprofiler2)
-```
-
+Results from A2
+Created edgeR object using DGEList and define model matrix to make a contrast table (normal subtypes vs DCIS and IDC subtypes) to see how the differential expression level of the normal(unaffected) subtypes and DCIS and IDC subtypes (affected). We used the package edgeR and Quasi liklihood method to calculate the differential expression. The heatmap also shows the different degree of expressiona level expressed in normal/unaffected vs other affected. Upregulated and downregulated genes from the calcuation have been saved and also output a ranked-gene list for further analysis purposes. Thresholded Over-representation analysis is also performed using g:profiler. 
 
 # Non-thresholded Gene set Enrichment Analysis
 
@@ -105,15 +79,22 @@ The result from g:profiler mostly consists of cellular and biological response t
 Enrichment Analysis is perfromed using Cytoscape 3.7.2 and the parameters are the followings:
 
 Analysis type: GSEA
+
 Enrichment pos: gsea_report_for_na_pos_1585770708151.xls
+
 ENrichment neg: gsea_report_for_na_neg_1585770708151.xls
+
 GMT: Human_GOBP_AllPathways_no_GO_iea_February_01_2020_symbol.gmt
+
 Ranks: ranked_gene_list_na_pos_versus_na_neg_1585770708151.txt
+
 Expression: normalized_data.txt
+
 Phenotype: na_pos, na_neg
+
 FDR : 0.9
 
-All the files are used in Cytoscape are generated from GSEA except normalized_data.txt. normalized_data.txt is the differential expression that is calculated in A2 and is inputed in a text file. It consists of all the gene names and their LogFC value.
+All the files are used in Cytoscape are generated from GSEA except normalized_data.txt. normalized_data.txt is the differential expression that is calculated in A2 and is inputed in a text file. It consists of all the gene names and their LogFC value. FDR is chosen 0.9 instead of 1.0 because there are less noise. 
 
 
 There are 463 nodes and 1469 edges showing in the network.
@@ -130,11 +111,17 @@ Annotated cluster:
 Using the application in Cytoscape, AutoAnnotate, to create annotation set
 
 The parameters are the followings:
+
 Cluster Alogrithm: MLC cluster
+
 Edge Weight column: simlarity_coefficient
+
 Label Column: GS_DESCR
+
 Label Algorithm: WordCloud: Adjacent Words
+
 Max Word per lable: 3
+
 Adjacent word bonus: 8
 
 
@@ -143,9 +130,15 @@ Adjacent word bonus: 8
 The annotation network has 90 clusters. The range size of the clusters is from 2 nodes to 33 nodes. 
 
 The top 3 largest upregulated cluster: 
-mrna translation termination
-il2 1pathway il
+
+mrna translation termination,
+
+il2 1pathway il,
+
 nucleus trna export
+
+The first two cluster is mentioned in the article.
+Differences between HER2 and TN IDC included the upregulation of pathways signaling for IL6, IL7, CTLA-4, and antigen-presentation by MHC I in TN cases. Also enriched were gene sets corresponding to cell signaling pathways, transcription and translation, and cell cycle in the HER2+ /TN IDC comparison, suggesting potential T cell expansion. Overall, these results suggest a more inflammatory and more immunosuppressive environment in IDCs compared to DCIS, especially in TN tumors.(Alcazar, 2017)
 
 1 major downregulated cluster:
 chemokine chemotaxis migration
@@ -157,12 +150,12 @@ Go to AutoAnnotate panel to Create Summary Network, then select Clusters and Unc
 
 ![](A3_images/AutoAnnotate - Summary Network.png)
 
-Now, in the network, we have 189 nodes and 33 edges. 34 of all nodes are not clustered together and the rest are clusted and linked together. 
+Now, we have a more clear view. In the network, we have 189 nodes and 33 edges. 34 of all nodes are not clustered together and the rest are clusted and linked together. 
 
 
 # Wikipathway
 
-From the GSEA reault, we can see MATRIX METALLOPROTEINASES pathway is in the top 10 upgregulated list. The MMP family and their inhibitor play a very important role multiple biological functions in all stages of cancer development. The stages of cancer developement include initiation to outgrowth of clinically relevant metastases and likewise in apoptosis and angiogenesis. MMPs and their inhibitors are crucital to many researchers and are investigated to be an anticancer drug
+From the GSEA reault, we can see MATRIX METALLOPROTEINASES pathway is in the top 10 upgregulated list. The MMP family and their inhibitor play a very important role multiple biological functions in all stages of cancer development. The stages of cancer developement include initiation to outgrowth of clinically relevant metastases and likewise in apoptosis and angiogenesis.(Jabłońska-Trypuć, 2016) They invlolve in morphogenesis, wound healing, tissue repair and remodelling in response to injury, e.g. after myocardial infarction, and in progression of diseases such as atheroma, arthritis, cancer and chronic tissue ulcers. hey are multi-domain proteins and their activities are regulated by tissue inhibitors of metalloproteinases (TIMPs) (Nagase 2006). MMPs and their inhibitors are crucital to many researchers and are investigated to be an anticancer drug. 
 
 
 Import the network from Public database, searched the pathway by Wikipathway and entered WP129
